@@ -1,24 +1,147 @@
-// import { consoleLogHelper, consoleLogHelper2 } from "./utils";
-import renderFriendsTemplateFn from './friends-content.hbs';
 import "./styles/styles.scss";
-import './vk.js';
+import "./vk.js";
 
-// импортируем картинки в виде путей (за нас это делает image loader из webpack)
-// посмотрите приведенные ниже выводы в консоль
-// import imagePathJpg from "./images/test_image.jpg";
-// import imagePathPng from "./images/test_image.png";
+const containerFrends = document.querySelector(".container-frends");
+const frendsListRight = document.querySelector(".frends__list-right");
+const frendsListLeft = document.querySelector(".frends__list-left");
+const buttonSave = document.querySelector(".container-ff__save");
 
-// console.log("My projec!");
+containerFrends.addEventListener("click", e => {
+    if (!e.target.classList.contains("cross")) return;
 
-// const imageContainer = document.querySelector(".image-from-js");
-// const jpegImage = new Image();
-// const pngImage = new Image();
+    if (e.target.classList.contains("cross-add")) {
+        e.target.classList.remove("cross-add");
+        e.target.classList.add("cross-remove");
+        add(frendsListRight, e.target);
+        sortFrends(getInputValue().right, frendsListRight);
+        sortFrends(getInputValue().left, frendsListLeft);
+    } else {
+        e.target.classList.remove("cross-remove");
+        e.target.classList.add("cross-add");
+        add(frendsListLeft, e.target);
+        sortFrends(getInputValue().left, frendsListLeft);
+        sortFrends(getInputValue().right, frendsListRight);
+    }
+});
 
-// jpegImage.src = imagePathJpg;
-// pngImage.src = imagePathPng;
+containerFrends.addEventListener("keyup", e => {
+    let inputValue = sameText(e.target.value);
 
-// imageContainer.appendChild(jpegImage);
-//  imageContainer.appendChild(pngImage);
+    if (!e.target.classList.contains("search")) return;
 
-// consoleLogHelper();
-// consoleLogHelper2();
+    if (e.target.classList.contains("search__right")) {
+        sortFrends(inputValue, frendsListRight);
+    } else {
+        sortFrends(inputValue, frendsListLeft);
+    }
+});
+
+function add(list, item) {
+    let id = item.getAttribute("data-id");
+    let frends = document.querySelectorAll(".frend");
+
+    frends.forEach(item => {
+        if (item.getAttribute("data-id") === id) {
+            list.appendChild(item);
+        }
+    });
+}
+
+function sortFrends(inputValue, list) {
+    let frends = list.querySelectorAll(".frend");
+
+    frends.forEach(item => {
+        let nameItem = sameText(item.innerText);
+
+        item.style.display = "";
+
+        if (!nameItem.includes(inputValue)) {
+            item.style.display = "none";
+        }
+    });
+}
+
+function sameText(text) {
+    return text.replace(/\s/g, "").toLowerCase();
+}
+
+function getInputValue() {
+    return {
+        right: document.querySelector(".search__right").value,
+        left: document.querySelector(".search__left").value
+    };
+}
+
+buttonSave.addEventListener("click", e => {
+    e.preventDefault();
+
+    let frends = frendsListRight.querySelectorAll(".frend");
+    let frendsId = [];
+
+    for (let i = 0; i < frends.length; i++) {
+        frendsId[i] = frends[i].getAttribute("data-id");
+    }
+
+    localStorage.frendsId = JSON.stringify(frendsId);
+});
+
+let currentDrag;
+
+document.addEventListener("dragstart", e => {
+    const zone = getCurrentZone(e.target);
+
+    if (zone) {
+        currentDrag = { startZone: zone, node: e.target };
+    }
+});
+
+document.addEventListener("dragover", e => {
+    const zone = getCurrentZone(e.target);
+
+    if (zone) {
+        e.preventDefault();
+    }
+});
+
+document.addEventListener("drop", e => {
+    if (currentDrag) {
+        const zone = getCurrentZone(e.target);
+
+        e.preventDefault();
+
+        if (zone && currentDrag.startZone !== zone) {
+            let cross = currentDrag.node.querySelector(".cross");
+
+            if (cross.classList.contains("cross-add")) {
+                cross.classList.remove("cross-add");
+                cross.classList.add("cross-remove");
+            } else {
+                cross.classList.remove("cross-remove");
+                cross.classList.add("cross-add");
+            }
+
+            if (e.target.classList.contains("frend")) {
+                zone.insertBefore(
+                    currentDrag.node,
+                    e.target.nextElementSibling
+                );
+            } else {
+                zone.appendChild(currentDrag.node);
+            }
+            sortFrends(getInputValue().right, frendsListRight);
+            sortFrends(getInputValue().left, frendsListLeft);
+        }
+
+        currentDrag = null;
+    }
+});
+
+function getCurrentZone(from) {
+    do {
+        if (from.classList.contains("drop-zone")) {
+            return from;
+        }
+    } while ((from = from.parentElement));
+
+    return null;
+}
